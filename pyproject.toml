@@ -1,9 +1,24 @@
 [tool.poetry]
 name = "funparse"
-version = "0.1.1"
-description = ""
+version = "0.1.2"
+description = "`funparse` allows you to 'derive' an argument parser from type annotations of a function's signature, cutting down on the boilerplate code."
 authors = ["Bruno Fauth <149593@upf.br>"]
 readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Shells",
+]
+keywords = ["cli", "command-line", "type", "hint", "derive", "decorator"]
+repository = "https://github.com/brunofauth/funparse"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/brunofauth/funparse/issues"
+"Homepage" = "https://github.com/brunofauth/funparse"
+
 
 [tool.poetry.dependencies]
 python = "^3.11"
