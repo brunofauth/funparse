@@ -58,8 +58,8 @@ some_parser_name.run([
     "--loves-python",
 ])
 
-# You can also use args from stdin
-some_parser_name.run(sys.stdin[1:])
+# You can also use args from the command line
+some_parser_name.run(sys.argv)
 ```
 
 ## Printing Help
