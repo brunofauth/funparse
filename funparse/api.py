@@ -10,6 +10,10 @@ import argparse as ap
 import functools
 import inspect
 import builtins
+import sys
+
+with contextlib.suppress(ImportError):
+    import docstring_parser as dp  # type: ignore
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -21,6 +25,7 @@ __all__ = [
     "as_arg_parser",
     "Command",
     "Enum",
+    "DocstringStyle",
 ]
 
 
@@ -103,15 +108,23 @@ def _unwrap_optional_type(opt: UnionType) -> type:
     return opt.__args__[opt.__args__.index(type(None)) - 1]
 
 
-def make_parser(
+def _make_parser(
     fn: Callable[P, T],
-    ignore: Sequence[str] | None = None,
-    parser_type: type[ap.ArgumentParser] = ArgumentParser,
+    ignore: Sequence[str] | None,
+    parser_type: type[ap.ArgumentParser],
+    parse_docstring: DocstringStyle | None,
 ) -> ap.ArgumentParser:
-    parser = parser_type(
-        description=fn.__doc__,
-        exit_on_error=False,
-    )
+    if parse_docstring is None:
+        description = fn.__doc__
+        arg_help = {}
+    elif "docstring_parser" not in sys.modules:
+        raise ModuleNotFoundError("docstring_parser")
+    else:
+        docstring = dp.parse(fn.__doc__, parse_docstring._to_dp())
+        description = docstring.long_description or docstring.short_description
+        arg_help = {p.arg_name: p.description for p in docstring.params}
+
+    parser = parser_type(description=description, exit_on_error=False)
     signature = inspect.signature(fn)
 
     for name, body in signature.parameters.items():
@@ -137,25 +150,31 @@ def make_parser(
             case GenericAlias():
                 action, _type, choices = johnny_generic(raw_type, default)
 
-        add_argument_params = {}
+        add_arg_params = {}
         if default is not Parameter.empty:
-            add_argument_params["default"] = default
+            add_arg_params["default"] = default
         match action:
             case "append":
-                add_argument_params["choices"] = choices
-                add_argument_params["type"] = _type
+                add_arg_params["choices"] = choices
+                add_arg_params["type"] = _type
             case "store":
-                add_argument_params["choices"] = choices
-                add_argument_params["type"] = _type
+                add_arg_params["choices"] = choices
+                add_arg_params["type"] = _type
             case "store_true" | "store_false":
                 pass
             case other:
                 raise ValueError(f"unsupported action: {other!r}")
 
+        if (help_text := arg_help.get(name, None)) is not None:
+            if default is Parameter.empty:
+                add_arg_params["help"] = f"{help_text}"
+            else:
+                add_arg_params["help"] = f"{help_text} (default={default})"
+
         parser.add_argument(
             make_argument_name(name, default is not Parameter.empty),
             action=action,
-            **add_argument_params,
+            **add_arg_params,
         )
 
     return parser
@@ -165,29 +184,38 @@ def as_arg_parser(
     fn: Callable[P, T] | None = None,
     ignore: Sequence[str] | None = None,
     parser_type: type[ap.ArgumentParser] = ArgumentParser,
+    parse_docstring: DocstringStyle | None = None,
 ):
     if fn is not None:
         return as_arg_parser_inner(
             fn=fn,
             ignore=ignore,
             parser_type=parser_type,
+            parse_docstring=parse_docstring,
         )
 
     return functools.partial(
         as_arg_parser_inner,
         ignore=ignore,
         parser_type=parser_type,
+        parse_docstring=parse_docstring,
     )
 
 
 def as_arg_parser_inner(
     fn: Callable[P, T],
-    ignore: Sequence[str] | None = None,
-    parser_type: type[ap.ArgumentParser] = ArgumentParser,
+    ignore: Sequence[str] | None,
+    parser_type: type[ap.ArgumentParser],
+    parse_docstring: DocstringStyle | None,
 ) -> Command[P, T]:
     return Command(
         fn=fn,
-        parser=make_parser(fn=fn, ignore=ignore, parser_type=parser_type),
+        parser=_make_parser(
+            fn=fn,
+            ignore=ignore,
+            parser_type=parser_type,
+            parse_docstring=parse_docstring,
+        ),
     )
 
 
@@ -235,3 +263,27 @@ class Enum(enum.Enum):
 
     def __str__(self) -> str:
         return self.name
+
+
+class DocstringStyle(Enum):
+    AUTO = enum.auto()
+    REST = enum.auto()
+    GOOGLE = enum.auto()
+    NUMPYDOC = enum.auto()
+    EPYDOC = enum.auto()
+
+    def _to_dp(self):
+
+        match self:
+            case DocstringStyle.AUTO:
+                return dp.DocstringStyle.AUTO
+            case DocstringStyle.REST:
+                return dp.DocstringStyle.REST
+            case DocstringStyle.GOOGLE:
+                return dp.DocstringStyle.GOOGLE
+            case DocstringStyle.NUMPYDOC:
+                return dp.DocstringStyle.NUMPYDOC
+            case DocstringStyle.EPYDOC:
+                return dp.DocstringStyle.EPYDOC
+            case _:
+                raise NotImplementedError("Can't convert DocstringStyle")

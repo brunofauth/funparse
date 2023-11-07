@@ -16,11 +16,14 @@ static type checker, such as [mypy](https://mypy-lang.org/)
 
 With pip:
 
-    pip install funparse
+    pip install funparse[docstring]
 
 With poetry:
     
-    poetry install funparse
+    poetry install funparse[docstring]
+
+If you don't need to generate per-argument help strings, you can omit the 
+`[docstring]` extra when installing this package.
 
 
 # Examples
@@ -215,6 +218,54 @@ some_parser.run([
     "johnny",
     "--is-foreigner",
 ])
+```
+
+## Generating per-argument help strings from docstrings
+
+Thanks to [this package](https://github.com/rr-/docstring_parser), `funparse` 
+can generate `help` strings for arguments, from the docstring of the function 
+in question, like this:
+
+```python
+import funparse.api as fp
+
+@fp.as_arg_parser(parse_docstring=fp.DocstringStyle.GOOGLE)
+def some_parser(
+    name: str,
+    is_foreigner: bool = False,
+) -> None:
+    """My awesome command.
+
+    Long description... Aut reiciendis voluptatem aperiam rerum voluptatem non. 
+    Aut sit temporibus in ex ut mollitia. Omnis velit asperiores voluptatem ut 
+    molestiae quis et qui.
+
+    Args:
+        name: some help information about this arg
+        is_foreigner: some other help information
+    """
+    print("Welcome", user_name)
+    if is_foreigner:
+        print("Nice to have you here")
+
+some_parser.print_help()
+```
+
+The generated command help should look like this:
+
+```
+usage: - [-h] [--is-foreigner] name
+
+Long description... Aut reiciendis voluptatem aperiam rerum voluptatem non.
+Aut sit temporibus in ex ut mollitia. Omnis velit asperiores voluptatem ut
+molestiae quis et qui.
+
+positional arguments:
+  name            some help information about this arg
+
+options:
+  -h, --help      show this help message and exit
+  --is-foreigner  some other help information (default=False)
 ```
 
 
