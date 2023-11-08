@@ -126,7 +126,7 @@ import funparse.api as fp
 import enum
 
 
-# This Enum functionality will work better if you user SCREAMING_SNAKE_CASE for 
+# This Enum functionality will work better if you use SCREAMING_SNAKE_CASE for 
 # the names of your enum members (if you don't, your CLI will work in a
 # case-sensitive way :P)
 class CommandModes(fp.Enum): # You can use enum.Enum and similar classes too
