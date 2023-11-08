@@ -4,7 +4,7 @@ import contextlib
 from collections.abc import Callable, Sequence
 from inspect import Parameter
 from types import GenericAlias, UnionType
-from typing import ParamSpec, TypeVar, Self, Generic, Any
+from typing import ParamSpec, TypeVar, Self, Generic, Any, overload, cast
 import enum
 import argparse as ap
 import functools
@@ -180,12 +180,32 @@ def _make_parser(
     return parser
 
 
+@overload
+def as_arg_parser(
+    fn: Callable[P, T],
+    ignore: Sequence[str] | None,
+    parser_type: type[ap.ArgumentParser],
+    parse_docstring: DocstringStyle | None,
+) -> Command[P, T]:
+    ...
+
+
+@overload
+def as_arg_parser(
+    fn: None,
+    ignore: Sequence[str] | None,
+    parser_type: type[ap.ArgumentParser],
+    parse_docstring: DocstringStyle | None,
+) -> Callable[[Callable[P, T]], Command[P, T]]:
+    ...
+
+
 def as_arg_parser(
     fn: Callable[P, T] | None = None,
     ignore: Sequence[str] | None = None,
     parser_type: type[ap.ArgumentParser] = ArgumentParser,
     parse_docstring: DocstringStyle | None = None,
-):
+) -> Command[P, T] | Callable[[Callable[P, T]], Command[P, T]]:
     if fn is not None:
         return as_arg_parser_inner(
             fn=fn,
@@ -195,7 +215,7 @@ def as_arg_parser(
         )
 
     return functools.partial(
-        as_arg_parser_inner,
+        cast(Callable[..., Command[P, T]], as_arg_parser_inner),
         ignore=ignore,
         parser_type=parser_type,
         parse_docstring=parse_docstring,
