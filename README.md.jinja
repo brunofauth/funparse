@@ -1,0 +1,129 @@
+#define # #
+
+
+# Introduction
+
+`funparse` allows you to "derive" an argument parser (such as those from 
+[argparse](https://docs.python.org/3/library/argparse.html)) from type 
+annotations of a function's signature, cutting down on the boilerplate code. 
+It's similar to [fire](https://github.com/google/python-fire) in this way, but 
+it's more lightweight and designed in a way to give its user more control over 
+what is going on.
+
+
+**Disclaimer:** your user experience may be much richer if you're using a 
+static type checker, such as [mypy](https://mypy-lang.org/)
+
+
+# Installation
+
+With pip:
+
+    pip install funparse[docstring]
+
+With poetry:
+    
+    poetry install funparse[docstring]
+
+If you don't need to generate per-argument help strings, you can omit the 
+`[docstring]` extra when installing this package.
+
+
+# Examples
+
+## Basic Usage
+
+```python
+{% include "./examples/01_basic_usage.py" %}
+```
+
+## Printing Help
+
+```python
+{% include "./examples/02_printing_help.py" %}
+```
+
+[See more about it 
+here](https://docs.python.org/3/library/argparse.html#printing-help)
+
+
+## Behavior on Booleans
+
+```python
+{% include "./examples/03_booleans.py" %}
+```
+
+
+## Behavior on Enums
+
+```python
+{% include "./examples/04_enums.py" %}
+```
+
+## Bypassing the command-line
+
+If you want to pass extra data to the function which you're using as your 
+parser generator, but without having to supply this data through the CLI, you 
+can use the `ignore` parameter on `as_arg_parser`, like this:
+
+```python
+{% include "./examples/05_bypassing_the_cli.py" %}
+```
+
+
+## Using custom argument parsers
+
+```python
+{% include "./examples/06_custom_argument_parser.py" %}
+```
+
+## Generating per-argument help strings from docstrings
+
+Thanks to [this package](https://github.com/rr-/docstring_parser), `funparse` 
+can generate `help` strings for arguments, from the docstring of the function 
+in question, like this:
+
+```python
+{% include "./examples/07_help_from_docstrings.py" %}
+```
+
+The generated command help should look like this:
+
+```
+usage: - [-h] [--is-foreigner] name
+
+Long description... Aut reiciendis voluptatem aperiam rerum voluptatem non.
+Aut sit temporibus in ex ut mollitia. Omnis velit asperiores voluptatem ut
+molestiae quis et qui.
+
+positional arguments:
+  name            some help information about this arg
+
+options:
+  -h, --help      show this help message and exit
+  --is-foreigner  some other help information (default=False)
+```
+
+
+## Variadic Positional Arguments
+
+You can use the star notation in a function's signature to specify that the 
+argument in question should take in zero or more parameters, like this:
+
+```python
+{% include "./examples/08_variadic_positional_arguments.py" %}
+```
+
+
+# Extras
+
+Beyond `as_arg_parser`, this module also ships:
+
+- `funparse.Enum`, which is a subclass of `enum.Enum`, but with a `__str__` 
+  that better fits your CLI apps
+- `funparse.ArgumentParser`, which is a subclass of `argparse.ArgumentParser` 
+  that, unlike the latter, does not terminate your app on (most) exceptions
+
+Have fun!
+
+

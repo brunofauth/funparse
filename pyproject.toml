@@ -27,6 +27,9 @@ docstring-parser = {version = "^0.15", optional = true}
 [tool.poetry.extras]
 docstring = ["docstring-parser"]
 
+[tool.poetry.group.dev.dependencies]
+jinja2 = "^3.1.2"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
