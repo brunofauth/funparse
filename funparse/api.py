@@ -13,7 +13,7 @@ import builtins
 import sys
 
 with contextlib.suppress(ImportError):
-    import docstring_parser as dp  # type: ignore
+    import docstring_parser as dp   # type: ignore
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -72,7 +72,7 @@ def johnny_simple(
             return "store", some_type, None
         case _:
             raise RuntimeError(f"unsupported type: {in_type!r}")
-    return ()  # type: ignore
+    return ()   # type: ignore
 
 
 def johnny_generic(
@@ -84,7 +84,7 @@ def johnny_generic(
             return "append", single_type, None
         case _:
             raise RuntimeError(f"unsupported generic type: {in_type!r}")
-    return ()  # type: ignore
+    return ()   # type: ignore
 
 
 def _bool_from_str(word: str) -> bool:
@@ -148,8 +148,7 @@ def _make_parser(
 
         match raw_type:
             case Parameter.empty:
-                raise SyntaxError(
-                    f"untyped parameters are not supported: {name!r}")
+                raise SyntaxError(f"untyped parameters are not supported: {name!r}")
             case type():
                 action, _type, choices = johnny_simple(raw_type, default)
             case GenericAlias():
@@ -175,11 +174,17 @@ def _make_parser(
             add_arg_params["nargs"] = "+"
             vararg_name = name
 
-        if (help_text := arg_help.get(name, None)) is not None:
-            if default is Parameter.empty:
-                add_arg_params["help"] = f"{help_text}"
-            else:
-                add_arg_params["help"] = f"{help_text} (default={default})"
+        type_name = raw_type.__name__
+        help_type = f"{type_name}[{_type}]" if isinstance(raw_type, GenericAlias) else type_name
+        match (arg_help.get(name, None), default):
+            case (None, Parameter.empty):
+                add_arg_params["help"] = f"{help_type}"
+            case (None, default_value):
+                add_arg_params["help"] = f"{help_type} (default={default_value})"
+            case (help_str, Parameter.empty):
+                add_arg_params["help"] = f"{help_type}: {help_str}"
+            case (help_str, default_value):
+                add_arg_params["help"] = f"{help_type} (default={default_value}): {help_str}"
 
         added_arg = parser.add_argument(
             make_argument_name(name, default is not Parameter.empty),
