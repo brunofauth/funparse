@@ -277,7 +277,7 @@ positional arguments:
 
 options:
   -h, --help      show this help message and exit
-  --is-foreigner  some other help information (default=False)
+  --is-foreigner  bool (default=False): some other help information
 ```
 
 
