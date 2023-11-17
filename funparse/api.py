@@ -46,8 +46,9 @@ class ArgumentParser(ap.ArgumentParser):
 
 
 def make_argument_name(base_name: str, optional: bool) -> str:
-    strikethrough = base_name.replace("_", "-")
-    return "--" + strikethrough if optional else strikethrough
+    if optional:
+        return "--" + base_name.replace("_", '-')
+    return base_name
 
 
 def johnny_simple(
@@ -104,6 +105,10 @@ def _enum_from_str(enum_type: type[enum.Enum], word: str) -> enum.Enum:
     raise ValueError(f"no name {word!r} in {enum_type!r}")
 
 
+def _is_optional_type(raw_type: UnionType) -> bool:
+    return len(raw_type.__args__) == 2 and type(None) in raw_type.__args__
+
+
 def _unwrap_optional_type(opt: UnionType) -> type:
     return opt.__args__[opt.__args__.index(type(None)) - 1]
 
@@ -113,7 +118,7 @@ def _make_parser(
     ignore: Sequence[str] | None,
     parser_type: type[ap.ArgumentParser],
     parse_docstring: DocstringStyle | None,
-) -> ap.ArgumentParser:
+) -> tuple[ap.ArgumentParser, str | None]:
     if parse_docstring is None:
         description = fn.__doc__
         arg_help = {}
@@ -126,6 +131,7 @@ def _make_parser(
 
     parser = parser_type(description=description, exit_on_error=False)
     signature = inspect.signature(fn)
+    vararg_name = None
 
     for name, body in signature.parameters.items():
         if ignore is not None and name in ignore:
@@ -134,8 +140,7 @@ def _make_parser(
         default = body.default
 
         if isinstance(raw_type, UnionType):
-            if len(raw_type.__args__) != 2 or type(
-                    None) not in raw_type.__args__:
+            if not _is_optional_type(raw_type):
                 raise TypeError(f"unsupported union: {raw_type!r}")
             raw_type = _unwrap_optional_type(raw_type)
             if default is Parameter.empty:
@@ -153,6 +158,7 @@ def _make_parser(
         add_arg_params = {}
         if default is not Parameter.empty:
             add_arg_params["default"] = default
+
         match action:
             case "append":
                 add_arg_params["choices"] = choices
@@ -165,37 +171,41 @@ def _make_parser(
             case other:
                 raise ValueError(f"unsupported action: {other!r}")
 
+        if body.kind == Parameter.VAR_POSITIONAL:
+            add_arg_params["nargs"] = "+"
+            vararg_name = name
+
         if (help_text := arg_help.get(name, None)) is not None:
             if default is Parameter.empty:
                 add_arg_params["help"] = f"{help_text}"
             else:
                 add_arg_params["help"] = f"{help_text} (default={default})"
 
-        parser.add_argument(
+        added_arg = parser.add_argument(
             make_argument_name(name, default is not Parameter.empty),
             action=action,
             **add_arg_params,
         )
 
-    return parser
+    return parser, vararg_name
 
 
 @overload
 def as_arg_parser(
     fn: Callable[P, T],
-    ignore: Sequence[str] | None,
-    parser_type: type[ap.ArgumentParser],
-    parse_docstring: DocstringStyle | None,
+    ignore: Sequence[str] | None = None,
+    parser_type: type[ap.ArgumentParser] = ap.ArgumentParser,
+    parse_docstring: DocstringStyle | None = None,
 ) -> Command[P, T]:
     ...
 
 
 @overload
 def as_arg_parser(
-    fn: None,
-    ignore: Sequence[str] | None,
-    parser_type: type[ap.ArgumentParser],
-    parse_docstring: DocstringStyle | None,
+    fn: None = None,
+    ignore: Sequence[str] | None = None,
+    parser_type: type[ap.ArgumentParser] = ap.ArgumentParser,
+    parse_docstring: DocstringStyle | None = None,
 ) -> Callable[[Callable[P, T]], Command[P, T]]:
     ...
 
@@ -228,14 +238,16 @@ def as_arg_parser_inner(
     parser_type: type[ap.ArgumentParser],
     parse_docstring: DocstringStyle | None,
 ) -> Command[P, T]:
+    parser, vararg_name = _make_parser(
+        fn=fn,
+        ignore=ignore,
+        parser_type=parser_type,
+        parse_docstring=parse_docstring,
+    )
     return Command(
         fn=fn,
-        parser=_make_parser(
-            fn=fn,
-            ignore=ignore,
-            parser_type=parser_type,
-            parse_docstring=parse_docstring,
-        ),
+        parser=parser,
+        vararg_name=vararg_name,
     )
 
 
@@ -244,6 +256,7 @@ class Command(Generic[P, T]):
         "_state",
         "_fn",
         "_parser",
+        "_vararg_name",
         "print_usage",
         "print_help",
         "format_usage",
@@ -254,10 +267,12 @@ class Command(Generic[P, T]):
         self,
         fn: Callable[P, T],
         parser: ap.ArgumentParser,
+        vararg_name: str | None = None,
         state: dict[str, Any] | None = None,
     ) -> None:
         self._fn = fn
         self._parser = parser
+        self._vararg_name = vararg_name
         self._state = state or {}
         self.print_usage = parser.print_usage
         self.print_help = parser.print_help
@@ -266,12 +281,24 @@ class Command(Generic[P, T]):
 
     def with_state(self: Self, **kwargs) -> Command[P, T]:
         self._state = kwargs
-        return Command(fn=self._fn, parser=self._parser, state=kwargs)
+        return Command(
+            fn=self._fn,
+            parser=self._parser,
+            state=kwargs,
+            vararg_name=self._vararg_name,
+        )
 
     def run(self: Self, cmd_args: list[str]) -> T:
+        parsed_args = vars(self._parser.parse_args(cmd_args))
+        if self._vararg_name is not None:
+            varargs = parsed_args.pop(self._vararg_name)
+        else:
+            varargs = ()
+
         return self._fn(
+            *varargs,
             **self._state,
-            **vars(self._parser.parse_args(cmd_args)),
+            **parsed_args,
         )
 
     def show_help(self) -> None:

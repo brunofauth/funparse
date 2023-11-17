@@ -1,6 +1,3 @@
-#define # #
-
-
 # Introduction
 
 `funparse` allows you to "derive" an argument parser (such as those from 
@@ -107,8 +104,12 @@ options:
 
 ## Variadic Positional Arguments
 
-You can use the star notation in a function's signature to specify that the 
-argument in question should take in zero or more parameters, like this:
+You can use the star notation in a function's signature to specify that the
+argument in question should take in one or more parameters. If you want your
+function's parameter to allow zero or more items, consider defining, in your
+functions signature, a parameter of type `list[T] | None` with a default value
+of `None`, as shown in './examples/01_basic_usage.py' or in the above section
+titled "Basic Usage".
 
 ```python
 {% include "./examples/08_variadic_positional_arguments.py" %}

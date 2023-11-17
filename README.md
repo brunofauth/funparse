@@ -34,6 +34,7 @@ If you don't need to generate per-argument help strings, you can omit the
 import sys
 import funparse.api as fp
 
+
 @fp.as_arg_parser
 def some_parser_name(
     your_name: str,
@@ -55,9 +56,9 @@ def some_parser_name(
 some_parser_name.run([
     "Johnny",
     "33",
-    "--pets", "Goofy",
-    "--pets", "Larry",
-    "--pets", "Yes",
+    *("--pets", "Goofy"),
+    *("--pets", "Larry"),
+    *("--pets", "Yes"),
     "--loves-python",
 ])
 
@@ -70,6 +71,7 @@ some_parser_name.run(sys.argv)
 ```python
 import funparse.api as fp
 
+
 @fp.as_arg_parser
 def some_parser_name(
     your_name: str,
@@ -78,6 +80,7 @@ def some_parser_name(
     print("Hi", your_name)
     if your_age > 325:
         print("getting elderly, eh")
+
 
 # You can print help and usage information like this:
 some_parser_name.print_usage()
@@ -98,23 +101,30 @@ here](https://docs.python.org/3/library/argparse.html#printing-help)
 ```python
 import funparse.api as fp
 
+
 @fp.as_arg_parser
 def booler(
-    aaa: bool, # This is a positional argument
-    bbb: bool = True, # This is a flag which, if present, will set 'bbb' to False
-    ccc: bool = False, # This is a flag which, if set, will set 'ccc' to True
+    # This is a positional argument
+    aaa: bool,
+
+    # This is a flag which, if present, will set 'bbb' to False
+    bbb: bool = True,
+
+    # This is a flag which, if set, will set 'ccc' to True
+    ccc: bool = False,
 ) -> None:
     print(aaa, bbb, ccc)
 
+
 # This will print: True, False, False
 booler.run([
-    "yes", # 'y', 'true', 'True' and '1' will also work
+    "yes",  # 'y', 'true', 'True' and '1' will also work
     "--bbb",
 ])
 
 # This will print: False, True, False
 booler.run([
-    "false", # 'n', 'no', 'False' and '0' will also work
+    "false",  # 'n', 'no', 'False' and '0' will also work
 ])
 ```
 
@@ -126,10 +136,10 @@ import funparse.api as fp
 import enum
 
 
-# This Enum functionality will work better if you use SCREAMING_SNAKE_CASE for 
+# This Enum functionality will work better if you use SCREAMING_SNAKE_CASE for
 # the names of your enum members (if you don't, your CLI will work in a
 # case-sensitive way :P)
-class CommandModes(fp.Enum): # You can use enum.Enum and similar classes too
+class CommandModes(fp.Enum):  # You can use enum.Enum and similar classes too
     CREATE_USER = enum.auto()
     LIST_USERS = enum.auto()
     DELETE_USER = enum.auto()
@@ -140,12 +150,12 @@ def some_parser(mode: CommandModes) -> None:
     print(f"you picked {mode.name!r} mode!")
 
 
-some_parser.run(["CREATE_USER"]) # This is valid...
-some_parser.run(["create_user"]) # ...so is this...
-some_parser.run(["crEatE_usEr"]) # ...and this too...
+some_parser.run(["CREATE_USER"])  # This is valid...
+some_parser.run(["create_user"])  # ...so is this...
+some_parser.run(["crEatE_usEr"])  # ...and this too...
 
 # This raises an error
-some_parser.run(["NON_EXISTING_FUNCTIONALITY"])
+some_parser.run(["NON EXISTING FUNCTIONALITY EXAMPLE"])
 ```
 
 ## Bypassing the command-line
@@ -162,7 +172,7 @@ import funparse.api as fp
 def some_parser(
     user_count: int,
     user_name: str,
-    user_address: str
+    user_address: str,
     is_foreigner: bool = False,
 ) -> None:
     print(f"you're the {user_count}th user today! welcome, {user_name}")
@@ -185,7 +195,7 @@ saving_for_later = some_parser.with_state(
 # Later:
 saving_for_later.run([
     "some address...",
-    "--is-foreigner"
+    "--is-foreigner",
 ])
 ```
 
@@ -229,6 +239,7 @@ in question, like this:
 ```python
 import funparse.api as fp
 
+
 @fp.as_arg_parser(parse_docstring=fp.DocstringStyle.GOOGLE)
 def some_parser(
     name: str,
@@ -244,9 +255,10 @@ def some_parser(
         name: some help information about this arg
         is_foreigner: some other help information
     """
-    print("Welcome", user_name)
+    print("Welcome", name)
     if is_foreigner:
         print("Nice to have you here")
+
 
 some_parser.print_help()
 ```
@@ -271,25 +283,34 @@ options:
 
 ## Variadic Positional Arguments
 
-You can use the star notation in a function's signature to specify that the 
-argument in question should take in zero or more parameters, like this:
+You can use the star notation in a function's signature to specify that the
+argument in question should take in one or more parameters. If you want your
+function's parameter to allow zero or more items, consider defining, in your
+functions signature, a parameter of type `list[T] | None` with a default value
+of `None`, as shown in './examples/01_basic_usage.py' or in the above section
+titled "Basic Usage".
 
 ```python
 import funparse.api as fp
 
+
 @fp.as_arg_parser
 def some_parser_name(
-    *pet_names: str, # Here's the aforementioned star notation
+    *pet_names: str,  # Here's the aforementioned star notation
     your_name: str = "John",
 ) -> None:
     print("Hi", your_name)
     for pet_name in pet_names:
         print("send greetings to", pet_name, "for me")
 
+
 # Run the parser on this set of arguments
 some_parser_name.run([
-    "Goofy", "Larry", "Yes",
-    "--your-name", "Johnny",
+    "Goofy",
+    "Larry",
+    "Yes",
+    "--your-name",
+    "Johnny",
 ])
 ```
 
