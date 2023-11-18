@@ -315,7 +315,7 @@ class Command(Generic[P, T]):
             vararg_name=self._vararg_name,
         )
 
-    def run(self: Self, cmd_args: list[str]) -> T:
+    def run(self: Self, cmd_args: list[str] | None = None) -> T:
         parsed_args = vars(self._parser.parse_args(cmd_args))
         if self._vararg_name is not None:
             varargs = parsed_args.pop(self._vararg_name)

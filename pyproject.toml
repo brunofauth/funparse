@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "funparse"
-version = "0.4.0"
+version = "0.4.1"
 description = "`funparse` allows you to 'derive' an argument parser from type annotations of a function's signature, cutting down on the boilerplate code."
 authors = ["Bruno Fauth <149593@upf.br>"]
 readme = "README.md"
