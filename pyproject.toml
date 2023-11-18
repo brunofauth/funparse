@@ -29,6 +29,7 @@ docstring = ["docstring-parser"]
 
 [tool.poetry.group.dev.dependencies]
 jinja2 = "^3.1.2"
+pudb = "^2023.1"
 
 [build-system]
 requires = ["poetry-core"]
