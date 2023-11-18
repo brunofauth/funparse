@@ -14,6 +14,7 @@ def some_parser_name(
     # The information from these annotations take precedence over those defined
     # in the docstring, overwriting them.
     param_4: Annotated[int, Doc("this is documented here and in the docstring")],
+
 ) -> None:
     """Some short description
 
