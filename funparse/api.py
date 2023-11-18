@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import contextlib
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Iterable
 from inspect import Parameter
 from types import GenericAlias, UnionType
-from typing import ParamSpec, TypeVar, Self, Generic, Any, overload, cast
+from typing import ParamSpec, TypeVar, Self, Generic, Any, Annotated
 import enum
 import argparse as ap
 import functools
 import inspect
 import builtins
+import typing
 import sys
+
+try:
+    from typing import Doc
+except ImportError:
+    from typing_extensions import Doc
 
 with contextlib.suppress(ImportError):
     import docstring_parser as dp   # type: ignore
@@ -43,6 +49,15 @@ class ArgumentParser(ap.ArgumentParser):
         should either exit or raise an exception.
         """
         raise RuntimeError(f'{self.prog}: error: {message}')
+
+
+def _is_documentation_annotation(obj: object) -> bool:
+    return obj.__class__.__name__ == "Doc"
+
+
+def _first(iterable: Iterable[T], pred: Callable[[T], bool]) -> T | None:
+    """Returns either None or the first item for which pred(item) is true."""
+    return next(filter(pred, iterable), None)   # type: ignore
 
 
 def make_argument_name(base_name: str, optional: bool) -> str:
@@ -79,7 +94,7 @@ def johnny_generic(
     in_type: GenericAlias,
     default_val: Any,
 ) -> tuple[str, type, list[str] | None]:
-    match (in_type.__origin__, in_type.__args__, default_val):
+    match (typing.get_origin(in_type), typing.get_args(in_type), default_val):
         case (seq, [single_type], _) if issubclass(seq, Sequence):
             return "append", single_type, None
         case _:
@@ -151,6 +166,13 @@ def _make_parser(
                 raise SyntaxError(f"untyped parameters are not supported: {name!r}")
             case type():
                 action, _type, choices = johnny_simple(raw_type, default)
+            case alias if typing.get_origin(alias) is Annotated:
+                inner_type, *other_type_args = typing.get_args(alias)
+                action, _type, choices = johnny_simple(inner_type, default)
+                doc_annotation = _first(other_type_args, _is_documentation_annotation)
+                if doc_annotation is not None:
+                    arg_help[name] = doc_annotation.documentation
+                raw_type = inner_type   # for help message generation
             case GenericAlias():
                 action, _type, choices = johnny_generic(raw_type, default)
 
@@ -195,7 +217,7 @@ def _make_parser(
     return parser, vararg_name
 
 
-@overload
+@typing.overload
 def as_arg_parser(
     fn: Callable[P, T],
     ignore: Sequence[str] | None = None,
@@ -205,7 +227,7 @@ def as_arg_parser(
     ...
 
 
-@overload
+@typing.overload
 def as_arg_parser(
     fn: None = None,
     ignore: Sequence[str] | None = None,
@@ -230,7 +252,7 @@ def as_arg_parser(
         )
 
     return functools.partial(
-        cast(Callable[..., Command[P, T]], as_arg_parser_inner),
+        typing.cast(Callable[..., Command[P, T]], as_arg_parser_inner),
         ignore=ignore,
         parser_type=parser_type,
         parse_docstring=parse_docstring,

@@ -281,6 +281,49 @@ options:
 ```
 
 
+## Generating per-argument help strings type annotations
+
+As of PEP 727, there's a new way to document information for parameters, aside
+from docstrings, which is the `Doc(...)` type, supposed to be used with
+`typing.Annotated`. This way of documenting is supported by funparse, so that
+you can auto-generate help string for each argument, from these annotations,
+like the example below shows:
+
+```python
+import funparse.api as fp
+from typing import Annotated
+from typing_extensions import Doc
+
+
+# You don't need to parse docstrings to have your Doc annotations to work, but
+# I'll use this feature here to show how it interacts with Annotated[T, Doc(...)]
+@fp.as_arg_parser(parse_docstring=fp.DocstringStyle.GOOGLE)
+def some_parser_name(
+    param_1: int,
+    param_2: int,
+    param_3: Annotated[int, Doc("this is only documented here")],
+    param_4: Annotated[int, Doc("this is documented here and in the docstring")],
+) -> None:
+    """Some short description
+
+    Some long description Dolorem ut illum in dolorum eaque maxime dignissimos.
+    Tempora provident eum sit. Modi voluptatibus dignissimos occaecati qui
+    quisquam minus quis et.
+
+    Args:
+        param_2: this is only documented in the docstring
+        param_4: this is documented both in the docstring and as an annotation
+    """
+    print(param_1)
+    print(param_2)
+    print(param_3)
+    print(param_4)
+
+
+some_parser_name.print_help()
+```
+
+
 ## Variadic Positional Arguments
 
 You can use the star notation in a function's signature to specify that the

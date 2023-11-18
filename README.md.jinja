@@ -102,6 +102,19 @@ options:
 ```
 
 
+## Generating per-argument help strings type annotations
+
+As of PEP 727, there's a new way to document information for parameters, aside
+from docstrings, which is the `Doc(...)` type, supposed to be used with
+`typing.Annotated`. This way of documenting is supported by funparse, so that
+you can auto-generate help string for each argument, from these annotations,
+like the example below shows:
+
+```python
+{% include "./examples/08_help_from_annotations.py" %}
+```
+
+
 ## Variadic Positional Arguments
 
 You can use the star notation in a function's signature to specify that the
@@ -112,7 +125,7 @@ of `None`, as shown in './examples/01_basic_usage.py' or in the above section
 titled "Basic Usage".
 
 ```python
-{% include "./examples/08_variadic_positional_arguments.py" %}
+{% include "./examples/09_variadic_positional_arguments.py" %}
 ```
 
 
