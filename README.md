@@ -31,7 +31,6 @@ If you don't need to generate per-argument help strings, you can omit the
 ## Basic Usage
 
 ```python
-import sys
 import funparse.api as fp
 
 
@@ -62,8 +61,9 @@ some_parser_name.run([
     "--loves-python",
 ])
 
-# You can also use args from the command line
-some_parser_name.run(sys.argv)
+# You can also use args from the shell's command line, like this (it's
+# equivalent to passing sys.argv[1:] as argument)
+some_parser_name.run()
 ```
 
 ## Printing Help
